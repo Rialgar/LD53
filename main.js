@@ -17,8 +17,17 @@ window.loadNetwork = index => {
     const network = JSON.parse(localStorage.networks)[index];
     nodes.length = 0;
     network.forEach(connections => {
-        nodes.push()
-    })
+        const node = layout.createNode((Math.random()-0.5)*100, (Math.random()-0.5)*100);
+        nodes.push(node);
+        connections.forEach(index => {
+            if(index < nodes.length){
+                layout.connect(node, nodes[index]);
+            }
+        });
+    });
+    for(let i = 0; i < 1000; i++){
+        layout.layout(nodes, 1/60, {edgeRepulsionScale: 0});
+    }
 }
 
 function draw(ctx, time){
@@ -46,7 +55,7 @@ function draw(ctx, time){
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.ellipse( node.position.x, node.position.y, 15, 15, 0, 0, 2 * Math.PI);
+        ctx.ellipse(node.position.x, node.position.y, 15, 15, 0, 0, 2 * Math.PI);
         ctx.fill();
         ctx.stroke();
     });
