@@ -2,6 +2,25 @@ import * as layout from './graphLayout.js';
 
 const nodes = [];
 
+window.saveNetwork = () => {
+    if(!localStorage.networks){
+        localStorage.networks = '[]';
+    }
+    const networks = JSON.parse(localStorage.networks);
+    const network = [];
+    nodes.forEach(node => network.push(node.connections.map(con => nodes.indexOf(con.other))))
+    networks.push(network);
+    localStorage.networks = JSON.stringify(networks);
+}
+
+window.loadNetwork = index => {
+    const network = JSON.parse(localStorage.networks)[index];
+    nodes.length = 0;
+    network.forEach(connections => {
+        nodes.push()
+    })
+}
+
 function draw(ctx, time){
     nodes.forEach(node => {
         node.connections.forEach(con => {
@@ -57,7 +76,7 @@ function init(){
         } while(Math.random() > 0.80)
     }
     for(let i = 0; i < 1000; i++){
-        layout.layout(nodes, 1/60);
+        layout.layout(nodes, 1/60, {edgeRepulsionScale: 0});
     }
 
 

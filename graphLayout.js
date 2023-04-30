@@ -1,11 +1,47 @@
 const defaultConfig = {
     springScale: 100,
-    chargeK: 50000000,
+    chargeK: 100000000,
     damping: 100,
     maxAcceleration: 5000,
-    edgeRepulsionScale: 0.5
+    edgeRepulsionScale: 10
 };
-window.layoutConfig = defaultConfig;
+
+function closestOnLine(a, b, p){
+    const slope = {x: b.x-a.x, y: b.y-a.y};
+    if(slope.x === 0 && slope.y === 0){
+        return a;
+    }
+
+    const perp = {x: slope.y, y: -slope.x};
+    // solve a + r*slope === b + t*perp
+
+    // a.x + r*slope.x === p.x + t*perp.x
+    // a.y + r*slope.y === p.y + t*perp.y
+
+    let r = 0;
+    if(perp.x === 0){
+        r = (p.x-a.x) / slope.x;
+    } else {
+        // t = (a.x + r*slope.x - p.x)/perp.x
+        // a.y + r*slope.y = p.y + (a.x + r*slope.x - p.x)*perp.y/perp.x
+        // r*slope.y - r*slope.x*perp.y/perp.x = p.y - a.y + (a.x - p.x)*perp.y/perp.x
+        // r(slope.y - slope.x*perp.y/perp.x) = p.y - a.y + (a.x - p.x)*perp.y/perp.x
+        r = (p.y - a.y + (a.x - p.x)*perp.y/perp.x) / (slope.y - slope.x*perp.y/perp.x)
+    }
+
+    if(r <= 0){
+        return a;
+    } else if(r >= 1){
+        return b;
+    } else {
+        return {
+            x: a.x + r * slope.x,
+            y: a.y + r * slope.y
+        }
+    }
+}
+window.closestOnLine = closestOnLine;
+
 
 export function createNode(x, y, mass = 1, charge = 1){
     return {
@@ -45,38 +81,49 @@ export function layout(nodes, dt, globalConfig = {}){
     let cfg = {...defaultConfig, ...globalConfig};
     nodes.forEach(node => {
         node.force = {x:-node.position.x, y:-node.position.y};
+    });
+    nodes.forEach(node => {
+        if(node.isDragged){
+            return;
+        }
         node.connections.forEach(({other, data: {strength}}) => {
             const k = cfg.springScale * strength * dt
             // F = d * k
             node.force.x += (other.position.x - node.position.x) * k;
             node.force.y += (other.position.y - node.position.y) * k;
         });
+        const repulse = (x, y, charge, power, others = []) => {
+            const dx = node.position.x - x;
+            const dy = node.position.y - y;
+            const distSq = dx * dx + dy * dy;
+
+            if(distSq !== 0){
+                // F = (k * q1 * q2) / (d * d)
+                const force = cfg.chargeK * node.charge * charge / Math.pow(distSq, power/2) * dt;
+
+                const dist = Math.sqrt(distSq);
+                const forceX = dx/dist * force;
+                const forceY = dy/dist * force;
+                node.force.x += forceX;                
+                node.force.y += forceY;
+                others.forEach(other => {
+                    other.force.x -= forceX;
+                    other.force.y -= forceY;
+                })
+            }
+        }
         nodes.forEach(other => {
             if(other === node){
                 return;
-            }
+            }            
 
-            const repulse = (x, y, scale) => {
-                const dx = node.position.x - x;
-                const dy = node.position.y - y;
-                const distSq = dx * dx + dy * dy;
-
-                if(distSq !== 0){
-                    // F = (k * q1 * q2) / (d * d)
-                    const force = cfg.chargeK * node.charge * other.charge / distSq * dt;
-
-                    const dist = Math.sqrt(distSq);
-                    node.force.x += dx/dist * force * scale;
-                    node.force.y += dy/dist * force * scale;
-                }
-            }
-
-            repulse(other.position.x, other.position.y, 1);
+            repulse(other.position.x, other.position.y, other.charge, 2);
             other.connections.forEach(con => {
                 if(con.other === node){
                     return;
                 }
-                repulse((other.position.x + con.other.position.x)/2, (other.position.y + con.other.position.y)/2, cfg.edgeRepulsionScale);
+                const closest = closestOnLine(other.position, con.other.position, node.position)
+                repulse(closest.x, closest.y, cfg.edgeRepulsionScale, 4, [other, con.other]);
             })
         });
         node.velocity.x /= Math.pow(cfg.damping, dt);
