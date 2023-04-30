@@ -1,9 +1,11 @@
 const defaultConfig = {
     springScale: 100,
-    chargeK: 100000000,
+    chargeK: 50000000,
     damping: 100,
-    maxAcceleration: 5000
+    maxAcceleration: 5000,
+    edgeRepulsionScale: 0.5
 };
+window.layoutConfig = defaultConfig;
 
 export function createNode(x, y, mass = 1, charge = 1){
     return {
@@ -53,18 +55,29 @@ export function layout(nodes, dt, globalConfig = {}){
             if(other === node){
                 return;
             }
-            const dx = node.position.x - other.position.x;
-            const dy = node.position.y - other.position.y;
-            const distSq = dx * dx + dy * dy;
 
-            if(distSq !== 0){
-                // F = (k * q1 * q2) / (d * d)
-                const force = cfg.chargeK * node.charge * other.charge / distSq * dt;
+            const repulse = (x, y, scale) => {
+                const dx = node.position.x - x;
+                const dy = node.position.y - y;
+                const distSq = dx * dx + dy * dy;
 
-                const dist = Math.sqrt(distSq);
-                node.force.x += dx/dist * force;
-                node.force.y += dy/dist * force;
+                if(distSq !== 0){
+                    // F = (k * q1 * q2) / (d * d)
+                    const force = cfg.chargeK * node.charge * other.charge / distSq * dt;
+
+                    const dist = Math.sqrt(distSq);
+                    node.force.x += dx/dist * force * scale;
+                    node.force.y += dy/dist * force * scale;
+                }
             }
+
+            repulse(other.position.x, other.position.y, 1);
+            other.connections.forEach(con => {
+                if(con.other === node){
+                    return;
+                }
+                repulse((other.position.x + con.other.position.x)/2, (other.position.y + con.other.position.y)/2, cfg.edgeRepulsionScale);
+            })
         });
         node.velocity.x /= Math.pow(cfg.damping, dt);
         node.velocity.y /= Math.pow(cfg.damping, dt);
@@ -83,7 +96,7 @@ export function layout(nodes, dt, globalConfig = {}){
         const dVx = aX * dt;
         const dVy = aY * dt;
         node.velocity.x += dVx;
-        node.velocity.y += dVy;
+        node.velocity.y += dVy;        
         node.position.x += (node.velocity.x + dVx/2) * dt;
         node.position.y += (node.velocity.y + dVy/2) * dt;
     })
