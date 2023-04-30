@@ -107,8 +107,8 @@ export function layout(nodes, dt, globalConfig = {}){
                 node.force.x += forceX;                
                 node.force.y += forceY;
                 others.forEach(other => {
-                    other.force.x -= forceX;
-                    other.force.y -= forceY;
+                    other.force.x -= forceX/others.length;
+                    other.force.y -= forceY/others.length;
                 })
             }
         }
@@ -118,13 +118,15 @@ export function layout(nodes, dt, globalConfig = {}){
             }            
 
             repulse(other.position.x, other.position.y, other.charge, 2);
-            other.connections.forEach(con => {
-                if(con.other === node){
-                    return;
-                }
-                const closest = closestOnLine(other.position, con.other.position, node.position)
-                repulse(closest.x, closest.y, cfg.edgeRepulsionScale, 4, [other, con.other]);
-            })
+            if(!other.isDragged){
+                other.connections.forEach(con => {
+                    if(con.other === node || con.other.isDragged){
+                        return;
+                    }
+                    const closest = closestOnLine(other.position, con.other.position, node.position)
+                    repulse(closest.x, closest.y, cfg.edgeRepulsionScale, 4, [other, con.other]);
+                })
+            }
         });
         node.velocity.x /= Math.pow(cfg.damping, dt);
         node.velocity.y /= Math.pow(cfg.damping, dt);
