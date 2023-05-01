@@ -4,7 +4,7 @@ This is my entry for Ludum Dare 53. The theme was "Delivery".
 
 [![Screenshot of the game.](./screenshots/main.png)](https://rialgar.github.io/LD53/)
 
-[Rate here](https://ldjam.com/events/ludum-dare/53/TBD)
+[Rate here](https://ldjam.com/events/ludum-dare/53/network-delivery)
 
 The goal is to de-tangle the network until all nodes are connected with non-crossing connections.
 
