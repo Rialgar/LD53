@@ -13,10 +13,38 @@
         }
         canvas {
             position: absolute;
-        }        
+        }
+        div.ui {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            font-size: 3vh;
+            color: #AAA;
+        }
+        button {
+            font-size: 3vh;
+            cursor: pointer;            
+            color: #8D8;
+            background-color: #111;
+            border: 2px outset #AAA;
+            border-radius: 1vh;
+        }
+        button:active {
+            border-style: inset;
+            color: #88A;
+            background-color: #000;
+        }
+        button:disabled {
+            cursor: default;
+            border-style: outset;
+            color: #888;
+            border-color: #888;
+            background-color: #111;
+        }
     </style>
 </head>
 <body>
     <canvas id="game"></canvas>
+    <div class="ui"><span><span id="level">0</span>/10</span> <button id="nextButton">Next Level</button></div>
 </body>
 </html>

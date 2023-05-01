@@ -1,4 +1,5 @@
 import * as layout from './graphLayout.js';
+import networks from './levels.js';
 
 const nodes = [];
 const connections = [];
@@ -66,6 +67,27 @@ function checkForCrossings(){
     }
 }
 
+let nextButton;
+function checkConnectivity(){
+    let count = 0;
+    nodes.forEach(node => {
+        node.isConnected = false;
+    });
+    nodes[0].isConnected = true;
+    const toCheck = [nodes[0]];
+    while(toCheck.length > 0){
+        count += 1;
+        const next = toCheck.shift();
+        next.connections.forEach(con => {
+            if(!con.data.hasCrossing && !con.other.isConnected){
+                con.other.isConnected = true;
+                toCheck.push(con.other);
+            }
+        });
+    }
+    nextButton.disabled = count < nodes.length;
+};
+
 window.saveNetwork = () => {
     if(!localStorage.networks){
         localStorage.networks = '[]';
@@ -77,8 +99,9 @@ window.saveNetwork = () => {
     localStorage.networks = JSON.stringify(networks);
 }
 
-window.loadNetwork = index => {
-    const network = JSON.parse(localStorage.networks)[index];
+let nextLevel = 0;
+let loadNetwork = index => {
+    const network = networks[index];
     nodes.length = 0;
     network.forEach(connections => {
         const node = layout.createNode((Math.random()-0.5)*100, (Math.random()-0.5)*100);
@@ -89,10 +112,27 @@ window.loadNetwork = index => {
             }
         });
     });
+
+}
+function advanceLevel(){
+    if(nextLevel < networks.length){
+        loadNetwork(nextLevel);
+        nextLevel++
+        document.getElementById('level').textContent = nextLevel;
+    } else {
+        document.getElementById('level').parentElement.textContent = "random generated";
+        for(let i = 0; i < 50; i++){
+            nodes.push(layout.createNode((Math.random()-0.5)*100, (Math.random()-0.5)*100));
+            do {
+                const b = Math.floor(Math.random() * (nodes.length - 1));
+                layout.connect(nodes[nodes.length-1], nodes[b])
+            } while(Math.random() > 0.80)
+        }
+    }
     rebuildConnectionArray();
     for(let i = 0; i < 1000; i++){
         layout.layout(nodes, 1/60, {edgeRepulsionScale: 0});
-    }    
+    }
 }
 
 function draw(ctx, time){
@@ -116,7 +156,7 @@ function draw(ctx, time){
     });
 
     nodes.forEach(node => {
-        ctx.fillStyle = node.isDragged ? '#FD9' : node.isTarget ? '#A60' : '#111';
+        ctx.fillStyle = node.isDragged ? '#FD9' : node.isTarget ? '#A60' : node.isConnected ? '#1A1' : '#111';
         ctx.strokeStyle = 'white';
         ctx.lineWidth = 3;
         ctx.beginPath();
@@ -129,6 +169,10 @@ function draw(ctx, time){
 }
 
 function init(){
+    nextButton = document.getElementById('nextButton');
+    nextButton.addEventListener('click', function(){
+        advanceLevel();
+    })
 
     const canvas = document.getElementById('game');
     let width = 800;
@@ -142,18 +186,7 @@ function init(){
     resize();
     window.addEventListener('resize', resize);
 
-    for(let i = 0; i < 50; i++){
-        nodes.push(layout.createNode((Math.random()-0.5)*100, (Math.random()-0.5)*100));
-        do {
-            const b = Math.floor(Math.random() * (nodes.length - 1));
-            layout.connect(nodes[nodes.length-1], nodes[b])
-        } while(Math.random() > 0.80)
-    }
-    rebuildConnectionArray();
-    for(let i = 0; i < 1000; i++){
-        layout.layout(nodes, 1/60, {edgeRepulsionScale: 0});
-    }
-
+    advanceLevel();
 
     let scale = 1;
     let translation = {x: 0, y: 0};
@@ -232,6 +265,7 @@ function init(){
         }
 
         checkForCrossings();
+        checkConnectivity();
 
         if(flushCounter > 100){
             //force flush buffer
@@ -246,8 +280,9 @@ function init(){
         const ctx = canvas.getContext('2d');
         ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = 'white';
-        ctx.fillText(Math.round(1/dt), 10, 20);
+        /*ctx.fillStyle = 'white';
+        ctx.font = "12pt sans-serif";
+        ctx.fillText(Math.round(1/dt), 10, 20);*/
 
         ctx.save();
         ctx.translate(width/2 + translation.x, height/2 + translation.y);
