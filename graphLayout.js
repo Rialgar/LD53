@@ -25,7 +25,7 @@ function closestOnLine(a, b, p){
         // t = (a.x + r*slope.x - p.x)/perp.x
         // a.y + r*slope.y = p.y + (a.x + r*slope.x - p.x)*perp.y/perp.x
         // r*slope.y - r*slope.x*perp.y/perp.x = p.y - a.y + (a.x - p.x)*perp.y/perp.x
-        // r(slope.y - slope.x*perp.y/perp.x) = p.y - a.y + (a.x - p.x)*perp.y/perp.x
+        // r*(slope.y - slope.x*perp.y/perp.x) = p.y - a.y + (a.x - p.x)*perp.y/perp.x
         r = (p.y - a.y + (a.x - p.x)*perp.y/perp.x) / (slope.y - slope.x*perp.y/perp.x)
     }
 
@@ -54,7 +54,7 @@ export function createNode(x, y, mass = 1, charge = 1){
 }
 
 export function connect(a, b, strength = 1){
-    if(a !== b && a.connections.some(con => con.other === b)){
+    if(a === b || a.connections.some(con => con.other === b) || b.connections.some(con => con.other === a)){
         return;
     }
 
